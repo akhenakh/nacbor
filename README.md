@@ -21,10 +21,6 @@ go install github.com/akhenakh/nacbor      # installs the `nacbor` binary to $GO
 task install                   # same `go install`, with version ldflags
 ```
 
-> The main package lives at the repository root (no `cmd/` indirection), so a
-> plain `go install github.com/akhenakh/nacbor` is enough — there's no
-> `/cmd/nacbor` suffix to remember.
-
 Requires Go 1.26+. Verify against a running JetStream-enabled server:
 
 ```bash
