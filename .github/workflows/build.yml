@@ -58,4 +58,4 @@ jobs:
           if [ "${{ github.ref }}" = "refs/heads/main" ]; then
             TAGS="$TAGS --tags latest"
           fi
-          ko build --bare $TAGS .
+          ko build --bare $TAGS ./cmd/nacbor
