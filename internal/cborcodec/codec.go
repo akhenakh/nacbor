@@ -46,7 +46,42 @@ func init() {
 
 // Decode unmarshals CBOR bytes into a generic Go value (the same shape Bento's
 // `to_json` operator produces when it calls SetStructured).
+//
+// NATS stores are not always populated by Bento pipelines: a value may be
+// plain JSON or other bytes. To keep nacbor usable against mixed-content
+// buckets/streams, when CBOR decoding fails Decode falls back to parsing the
+// bytes as JSON, and finally to the raw bytes as a string. An error is only
+// returned if the input is neither valid CBOR nor valid JSON.
 func Decode(data []byte) (any, error) {
+	if len(data) == 0 {
+		return nil, nil
+	}
+
+	var v any
+	if err := DecMode.Unmarshal(data, &v); err == nil {
+		return v, nil
+	}
+
+	// Not CBOR — try JSON next. json.Valid avoids turning arbitrary garbage
+	// into a successful (but meaningless) string fallback, while still
+	// accepting whitespace-only bodies that json.Unmarshal tolerates.
+	if json.Valid(data) {
+		var jv any
+		if err := json.Unmarshal(data, &jv); err == nil {
+			return jv, nil
+		}
+	}
+
+	// Last resort: present the bytes verbatim as a string so non-structured
+	// payloads (text, protobuf, opaque blobs) still render instead of
+	// failing the whole command.
+	return string(data), nil
+}
+
+// DecodeStrict unmarshals CBOR bytes only; it returns an error if the input
+// is not valid CBOR. Use this when the caller must guarantee CBOR semantics
+// (e.g. round-tripping values back into a store without re-encoding).
+func DecodeStrict(data []byte) (any, error) {
 	var v any
 	if err := DecMode.Unmarshal(data, &v); err != nil {
 		return nil, fmt.Errorf("decode CBOR: %w", err)

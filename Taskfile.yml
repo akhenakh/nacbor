@@ -8,29 +8,31 @@ vars:
   DATE:
     sh: date -u +%Y-%m-%dT%H:%M:%SZ
   LDFLAGS: -X main.version={{.VERSION}} -X main.commit={{.COMMIT}} -X main.date={{.DATE}}
-  BINARY: bin/nacbor
 
 tasks:
   default:
-    desc: Build the nacbor binary
+    desc: Build the nacbor and nacborui binaries
     cmds:
       - task: build
 
   build:
-    desc: Build the nacbor binary with version ldflags
+    desc: Build the nacbor and nacborui binaries with version ldflags
     sources:
-      - '*.go'
+      - cmd/**/*.go
       - internal/**/*.go
       - go.mod
     generates:
-      - '{{.BINARY}}'
+      - bin/nacbor
+      - bin/nacborui
     cmds:
-      - cmd: go build -ldflags "{{.LDFLAGS}}" -o {{.BINARY}} .
+      - cmd: go build -ldflags "{{.LDFLAGS}}" -o bin/nacbor ./cmd/nacbor
+      - cmd: go build -ldflags "{{.LDFLAGS}}" -o bin/nacborui ./cmd/nacborui
 
   install:
-    desc: Install nacbor to $GOBIN (no cmd/ indirection — root package)
+    desc: Install nacbor and nacborui to $GOBIN
     cmds:
-      - cmd: go install -ldflags "{{.LDFLAGS}}" github.com/akhenakh/nacbor
+      - cmd: go install -ldflags "{{.LDFLAGS}}" github.com/akhenakh/nacbor/cmd/nacbor
+      - cmd: go install -ldflags "{{.LDFLAGS}}" github.com/akhenakh/nacbor/cmd/nacborui
 
   test:
     desc: Run all tests

@@ -1,3 +1,5 @@
 bin/
 dist/
 .task/
+cmd/nacborui/nacborui
+cmd/nacbor/nacbor

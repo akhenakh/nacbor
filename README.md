@@ -1,7 +1,10 @@
 # nacbor
 
 `nacbor` is a CLI for inspecting and manipulating **CBOR-encoded** data stored in
-NATS, NATS JetStream streams, and NATS KV buckets.
+NATS, NATS JetStream streams, and NATS KV buckets. A companion TUI,
+`nacborui`, browses KV buckets and streams interactively. Both tools decode
+CBOR to JSON and gracefully fall back to JSON or raw bytes when the stored
+data isn't CBOR.
 
 The encoder/decoder uses
 [`github.com/fxamacker/cbor/v2`](https://github.com/fxamacker/cbor).
@@ -14,12 +17,17 @@ The encoder/decoder uses
 ## Install
 
 ```bash
-task build                    # produces ./bin/nacbor with version ldflags
+task build                    # produces ./bin/nacbor and ./bin/nacborui with version ldflags
 # or
-go install github.com/akhenakh/nacbor      # installs the `nacbor` binary to $GOBIN
+go install github.com/akhenakh/nacbor/cmd/nacbor@latest     # installs `nacbor` to $GOBIN
+go install github.com/akhenakh/nacbor/cmd/nacborui@latest   # installs `nacborui` to $GOBIN
 # or
-task install                   # same `go install`, with version ldflags
+task install                   # same `go install`, with version ldflags, for both binaries
 ```
+
+Pre-built binaries for Linux/macOS/Windows (both `nacbor` and `nacborui`,
+packed in a single tar.gz per platform) are published on the
+[Releases page](https://github.com/akhenakh/nacbor/releases).
 
 Requires Go 1.26+. Verify against a running JetStream-enabled server:
 
@@ -55,6 +63,23 @@ Auth methods are tried in this order: **NKEY seed → creds file → user/passwo
   (`kv get`, `kv status`, `stream get`, `stream info`, …). Streaming commands
   (`kv list`, `kv watch`, `live`, `nats sub`) always emit NDJSON so they stay
   line-delimited for `jq`, `grep`, etc.
+
+## `nacborui` — interactive TUI
+
+`nacborui` is a terminal UI (built with [bubbletea](https://github.com/charmbracelet/bubbletea))
+for browsing KV buckets, streams, and individual entries. It connects with
+the same flags/env vars as `nacbor` (`-s`, `--nkey`, `--creds`, …) and renders
+each payload with the same CBOR → JSON → raw fallback, so mixed-content stores
+display cleanly.
+
+```bash
+nacborui                    # connect to localhost:4222
+nacborui -s nats://demo.nats.io:4222
+```
+
+Inside the UI: pick a bucket/stream, navigate entries, and inspect decoded
+payloads alongside metadata (revision, created, delta, operation). Useful for
+exploring data that `nacbor kv list` would scroll past.
 
 ## CBOR codec
 
@@ -318,13 +343,20 @@ nacbor completion bash > /etc/bash_completion.d/nacbor   # or zsh / fish / power
 ## Project layout
 
 ```text
-*.go (repo root)    package main — cobra CLI (root + kv / live / stream / nats / version)
-internal/cborcodec/ CBOR enc/dec
+cmd/nacbor/         package main — CLI (root + kv / live / stream / nats / version)
+cmd/nacborui/       package main — interactive TUI (bubbletea)
+internal/cborcodec/ CBOR enc/dec, with JSON/raw fallback so mixed-content
+                    buckets and streams render instead of erroring
 internal/natsconn/  NATS connection helper (NKEY, creds, userpass, token, TLS)
 ```
 
-There is no `cmd/` indirection — `go install github.com/akhenakh/nacbor` builds
-`nacbor` directly from the root package.
+`nacbor` and `nacborui` are separate `main` packages under `cmd/`, so `go
+install` targets them explicitly:
+
+```bash
+go install github.com/akhenakh/nacbor/cmd/nacbor
+go install github.com/akhenakh/nacbor/cmd/nacborui
+```
 
 ## Build / test / lint
 

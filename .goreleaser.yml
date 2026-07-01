@@ -5,7 +5,9 @@ before:
     - go mod tidy
 
 builds:
-  - main: .
+  - id: nacbor
+    main: ./cmd/nacbor
+    binary: nacbor
     env:
       - CGO_ENABLED=0
     goos:
@@ -13,16 +15,38 @@ builds:
       - darwin
       - windows
     goarch:
-    - amd64
-    - arm64
+      - amd64
+      - arm64
     ignore:
       - goos: darwin
         goarch: amd64
       - goos: windows
         goarch: arm64
+  - id: nacborui
+    main: ./cmd/nacborui
+    binary: nacborui
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: darwin
+        goarch: amd64
+      - goos: windows
+        goarch: arm64
+
 archives:
-  - formats: ['tar.gz']
-    # this name template makes the OS and Arch compatible with the results of `uname`.
+  - id: default
+    ids:
+      - nacbor
+      - nacborui
+    formats: ['tar.gz']
+    # Ship both binaries in a single tar.gz per platform.
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_

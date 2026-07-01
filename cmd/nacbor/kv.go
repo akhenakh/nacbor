@@ -368,17 +368,20 @@ func kvListCmd() *cobra.Command {
 				return fmt.Errorf("watch: %w", err)
 			}
 			defer w.Stop()
-			out := cmd.OutOrStdout()
-			for entry := range w.Updates() {
-				if entry == nil {
-					continue
-				}
-				if err := writeKVEntry(out, entry, raw); err != nil {
-					return err
-				}
+out := cmd.OutOrStdout()
+		for entry := range w.Updates() {
+			if entry == nil {
+				// nil marks the end of the initial snapshot; `list` is a
+				// one-shot dump, so stop here rather than blocking on live
+				// updates.
+				return nil
 			}
-			return nil
-		},
+			if err := writeKVEntry(out, entry, raw); err != nil {
+				return err
+			}
+		}
+		return nil
+	},
 	}
 	c.Flags().StringArrayVar(&filters, "filter", nil, "subject filter (repeatable)")
 	return c

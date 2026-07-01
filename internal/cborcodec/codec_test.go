@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"encoding/json"
+	"reflect"
 	"testing"
 )
 
@@ -82,5 +83,52 @@ func TestDecodePreservesNumbers(t *testing.T) {
 	}
 	if got["f"].(float64) != 3.14 {
 		t.Errorf("f = %v, want 3.14", got["f"])
+	}
+}
+
+// TestDecodeFallsBackToJSON verifies that Decode surfaces plain JSON payloads
+// stored alongside CBOR ones in the same NATS store, instead of erroring out.
+func TestDecodeFallsBackToJSON(t *testing.T) {
+	cases := []struct {
+		name string
+		in   []byte
+		want any
+	}{
+		{"object", []byte(`{"k":"v","n":1}`), map[string]any{"k": "v", "n": float64(1)}},
+		{"array", []byte(`[1,2,3]`), []any{float64(1), float64(2), float64(3)}},
+		{"number", []byte(`42`), float64(42)},
+		{"string", []byte(`"hello"`), "hello"},
+		{"bool", []byte(`true`), true},
+		{"null", []byte(`null`), nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := Decode(tc.in)
+			if err != nil {
+				t.Fatalf("Decode: %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("Decode(%s) = %#v, want %#v", tc.in, got, tc.want)
+			}
+		})
+	}
+}
+
+// TestDecodeFallsBackToRawString verifies that non-structured bytes (neither
+// CBOR nor JSON) still render as a string rather than failing the command.
+func TestDecodeFallsBackToRawString(t *testing.T) {
+	in := []byte("plain text payload \xff\x00 not json or cbor")
+	got, err := Decode(in)
+	if err != nil {
+		t.Fatalf("Decode: %v", err)
+	}
+	if s, ok := got.(string); !ok || s != string(in) {
+		t.Errorf("Decode = %#v, want string %q", got, string(in))
+	}
+}
+
+func TestDecodeStrictRejectsJSON(t *testing.T) {
+	if _, err := DecodeStrict([]byte(`{"k":"v"}`)); err == nil {
+		t.Fatal("DecodeStrict accepted JSON input; expected CBOR-only error")
 	}
 }
