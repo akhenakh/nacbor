@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/list"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
@@ -94,6 +95,11 @@ func main() {
 
 	iList := list.New(nil, list.NewDefaultDelegate(), 0, 0)
 	iList.DisableQuitKeybindings()
+	iList.AdditionalShortHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			key.NewBinding(key.WithKeys("r"), key.WithHelp("r", "refresh")),
+		}
+	}
 
 	m := appModel{
 		nc:         nc,
