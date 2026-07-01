@@ -125,15 +125,20 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
-		case "esc":
+		case "q", "esc":
 			switch m.state {
+			case stateMainMenu:
+				return m, tea.Quit
 			case stateSubjectInput:
 				m.subjectInput.Blur()
 				m.subjectInput.Reset()
 				m.state = stateMainMenu
 				return m, nil
-			case stateBucketList, stateStreamList, stateWatching:
+			case stateWatching:
 				m.stopWatch()
+				m.state = stateMainMenu
+				return m, nil
+			case stateBucketList, stateStreamList:
 				m.state = stateMainMenu
 			case stateKVKeyList:
 				m.state = stateBucketList
@@ -149,15 +154,6 @@ func (m appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			return m, nil
-		case "q":
-			if m.state == stateMainMenu {
-				return m, tea.Quit
-			}
-			if m.state == stateWatching {
-				m.stopWatch()
-				m.state = stateMainMenu
-				return m, nil
-			}
 
 		case "r":
 			if m.state == stateStreamMsgList && m.currentStream != "" && m.itemList.FilterState() != list.Filtering {

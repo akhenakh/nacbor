@@ -55,7 +55,7 @@ func formatPayload(data []byte) (string, string) {
 		return "Empty", ""
 	}
 
-	if v, err := cborcodec.Decode(data); err == nil {
+	if v, err := cborcodec.DecodeStrict(data); err == nil {
 		if pj, err := json.MarshalIndent(v, "", "  "); err == nil {
 			return "CBOR", colorizeJSON(pj)
 		}
